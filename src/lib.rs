@@ -2,8 +2,20 @@
 
 pub mod can;
 
-mod id;
-pub use crate::id::{Id, IdError, Priority, Result};
+mod device;
+pub use device::Device;
 
-mod bus;
-pub use crate::bus::Bus;
+mod handler;
+pub use handler::Handler;
+
+mod id;
+pub use id::{Id, IdError, Priority, Result};
+
+mod message;
+pub use message::Message;
+
+mod name;
+pub use name::Name;
+
+mod product_info;
+pub use product_info::ProductInfo;
