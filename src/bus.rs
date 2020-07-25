@@ -1,4 +1,4 @@
-use crate::can::device::Device;
+use crate::can::Device;
 
 pub struct Bus<T: Device> {
     device: T,

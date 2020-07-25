@@ -1,2 +1,4 @@
-pub mod device;
+mod device;
+pub use device::Device;
+
 mod frame;
