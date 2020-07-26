@@ -1,4 +1,4 @@
-pub struct ProductInfo<'a> {
+pub struct Product<'a> {
     n2k: u8,
     code: u8,
     model: &'a str,
@@ -9,7 +9,7 @@ pub struct ProductInfo<'a> {
     load: u8,
 }
 
-impl<'a> ProductInfo<'a> {
+impl<'a> Product<'a> {
     pub fn new(
         n2k: u8,
         code: u8,
@@ -19,10 +19,10 @@ impl<'a> ProductInfo<'a> {
         serial: &'a str,
         certification: u8,
         load: u8,
-    ) -> ProductInfo<'a> {
+    ) -> Product<'a> {
         //TODO: validate parameters
 
-        ProductInfo {
+        Product {
             n2k: n2k,
             code: code,
             model: model,

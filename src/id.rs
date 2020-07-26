@@ -1,7 +1,10 @@
+use crate::GLOBAL_ADDRESS;
 use core::convert::TryFrom;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum IdError {
+    CanNotSendToDestination,
+    DestinationRequired,
     InvalidId,
     InvalidPriority,
 }
@@ -26,7 +29,7 @@ pub struct Id {
 }
 
 impl Id {
-    pub fn new(prio: Priority, pgn: u32, src: u8, dst: u8) -> Result<u32> {
+    pub fn new(prio: Priority, pgn: u32, src: u8, dst: u8) -> Result<Id> {
         let mut id: u32 = 0x00;
 
         id = id | (src & 0xff) as u32;
@@ -37,12 +40,15 @@ impl Id {
             id |= ((dst & 0xff) as u32) << 8;
             id |= pgn << 8;
         } else {
+            if dst != GLOBAL_ADDRESS {
+                return Err(IdError::CanNotSendToDestination);
+            }
             // PDU 2
             id |= pgn << 8;
         }
         id |= (prio as u32) << 26;
 
-        Ok(id)
+        Ok(Id { id })
     }
 
     pub fn priority(&self) -> Priority {
@@ -90,6 +96,10 @@ impl Id {
             0xff
         }
     }
+
+    pub fn value(&self) -> u32 {
+        self.id
+    }
 }
 
 impl TryFrom<u32> for Id {
@@ -102,7 +112,6 @@ impl TryFrom<u32> for Id {
     }
 }
 
-
 fn validate_id(id: &u32) -> Result<()> {
     if id & 0xe0000000 > 0 {
         return Err(IdError::InvalidId);
@@ -112,11 +121,11 @@ fn validate_id(id: &u32) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Id, Priority};
+    use crate::{Id, Priority, GLOBAL_ADDRESS};
     use core::convert::TryFrom;
 
     #[test]
-    fn id_new() {
+    fn id_new_destination() {
         struct TestCase {
             id: u32,
             prio: Priority,
@@ -137,7 +146,7 @@ mod tests {
                 prio: Priority::Priority7,
                 pgn: 60416,
                 src: 61,
-                dst: 255,
+                dst: GLOBAL_ADDRESS,
             },
             TestCase {
                 id: 0xcfe6cee,
@@ -148,7 +157,7 @@ mod tests {
             },
         ];
         for i in &test_cases {
-            let id: u32 = Id::new(i.prio, i.pgn, i.src, i.dst).expect("Invalid parameter");
+            let id: u32 = Id::new(i.prio, i.pgn, i.src, i.dst).expect("Invalid parameter").value();
             assert_eq!(id, i.id)
         }
     }

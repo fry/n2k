@@ -16,6 +16,11 @@ pub struct Name {
 }
 
 impl Name {
+    pub fn arbitrary_address(&self) -> bool{
+        //TODO: implement
+        true
+    }
+
     pub fn industry_group(&self) -> u8 {
         //TODO: implement
         0
