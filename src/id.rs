@@ -29,6 +29,7 @@ pub struct Id {
 }
 
 impl Id {
+    //TODO: figure out if this should be split into two constructors
     pub fn new(prio: Priority, pgn: u32, src: u8, dst: u8) -> Result<Id> {
         let mut id: u32 = 0x00;
 

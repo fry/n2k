@@ -5,8 +5,10 @@ use alloc::vec::Vec;
 use crate::can::{Bus, BusError, Frame};
 use crate::{Handler, Id, IdError, Message, GLOBAL_ADDRESS};
 
-const PGN_TP_CM: u32 = 60416; // ISO Transport Protocol, Connection Management - RTS group
-const PGN_TP_DT: u32 = 60160; // ISO Transport Protocol, Data Transfer
+const CB_TP_BAM: u8 = 0x40; // Control byte indicating TP_BAM
+
+const PGN_TP_CM: u32 = 0x00ec00; // 60416 - ISO Transport Protocol, Connection Management - RTS group
+const PGN_TP_DT: u32 = 0x00eb00; // 60160 - ISO Transport Protocol, Data Transfer
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum DeviceError {
@@ -78,7 +80,7 @@ where
             let priority = id.priority();        
             let tp_cm_id = Id::new(priority, PGN_TP_CM, self.address, GLOBAL_ADDRESS)?;
             let d: [u8; 8] = [
-                0x40,                         // Control Byte: BAM
+                CB_TP_BAM,                    // Control Byte: TP_BAM
                 (length & 0xff) as u8,        // message size LSB
                 ((length >> 8) & 0xff) as u8, // message size MSB
                 packets as u8,                // number of packets
