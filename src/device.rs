@@ -3,7 +3,10 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use crate::can::{Bus, BusError, Frame};
-use crate::{Handler, Id, IdError, Message, Priority, GLOBAL_ADDRESS};
+use crate::{Handler, Id, IdError, Message, GLOBAL_ADDRESS};
+
+const PGN_TP_CM: u32 = 60416; // ISO Transport Protocol, Connection Management - RTS group
+const PGN_TP_DT: u32 = 60160; // ISO Transport Protocol, Data Transfer
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum DeviceError {
@@ -53,28 +56,29 @@ where
     }
 
     pub fn send(&mut self, message: &Message) -> Result<()> {
-        let id = message.id().value();
-        let pgn = message.id().pgn();
+        let id = message.id();
         let data = message.data();
         let length = data.len();
 
-        if length < 8 {
+        if length <= 8 {
             //TODO: Make sure it's not a fast packet
             let mut d: [u8; 8] = [255; 8];
             for i in 0..length {
                 d[i] = data[i];
             }
-            let frame = Frame::new(id, length as u8, d);
+            let frame = Frame::new(id.value(), length as u8, d);
             self.bus.send(frame)?;
             Ok(())
         } else {
             //calculate number of packets that will be sent
             let packets = (length / 7) + 1;
-
+            
             // send broadcast announce message (BAM)
-            let id = Id::new(Priority::Priority0, 60416, self.address, GLOBAL_ADDRESS)?;
+            let pgn = id.pgn();
+            let priority = id.priority();        
+            let tp_cm_id = Id::new(priority, PGN_TP_CM, self.address, GLOBAL_ADDRESS)?;
             let d: [u8; 8] = [
-                0x40,                         // Control Byte: 32=BAM
+                0x40,                         // Control Byte: BAM
                 (length & 0xff) as u8,        // message size LSB
                 ((length >> 8) & 0xff) as u8, // message size MSB
                 packets as u8,                // number of packets
@@ -84,11 +88,11 @@ where
                 ((pgn >> 16) & 0xff) as u8,   // PGN MSB
             ];
 
-            let frame = Frame::new(id.value(), length as u8, d);
+            let frame = Frame::new(tp_cm_id.value(), length as u8, d);
             self.bus.send(frame)?;
 
-            // send packets
-            let id = Id::new(Priority::Priority0, 60160, self.address, GLOBAL_ADDRESS)?;
+            // send packets 
+            let tp_dt_id = Id::new(priority, PGN_TP_DT, self.address, GLOBAL_ADDRESS)?;
             let mut count = 1;
             let mut index = 0;
             let mut remaining = length;
@@ -110,7 +114,7 @@ where
                     index += 1;
                 }
 
-                let frame = Frame::new(id.value(), 8, d);
+                let frame = Frame::new(tp_dt_id.value(), 8, d);
                 self.bus.send(frame)?
             }
 
@@ -127,8 +131,8 @@ where
 #[cfg(test)]
 mod tests {
     extern crate alloc;
-    use crate::can::{Bus, BusError, Frame, Result};
-    use crate::{Device, Handler, Id, IdError, Message, Priority, GLOBAL_ADDRESS};
+    use crate::can::{Bus, Frame, Result};
+    use crate::{Device, Id, Message, Priority, GLOBAL_ADDRESS};
     use alloc::boxed::Box;
     use alloc::vec::Vec;
 

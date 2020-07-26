@@ -33,4 +33,36 @@ impl<'a> Product<'a> {
             load: load,
         }
     }
+
+    pub fn n2k(&self) -> u8 {
+        self.n2k
+    }
+
+    pub fn code(&self) -> u8 {
+        self.code
+    }
+
+    pub fn model(&self) -> &'a str {
+        self.model
+    }
+
+    pub fn software(&self) -> &'a str {
+        self.software
+    }
+
+    pub fn version(&self) -> &'a str {
+        self.version
+    }
+
+    pub fn serial(&self) -> &'a str {
+        self.serial
+    }
+
+    pub fn certification(&self) -> u8 {
+        self.certification
+    }
+
+    pub fn load(&self) -> u8 {
+        self.load
+    }
 }
