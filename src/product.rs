@@ -19,7 +19,7 @@ impl<'a> Product<'a> {
         serial: &'a str,
         certification: u8,
         load: u8,
-    ) -> Product<'a> {
+    ) -> Self {
         //TODO: validate parameters
 
         Product {

@@ -13,7 +13,7 @@ impl Name {
         ecu_instance: u8,
         manufacturer_code: u16,
         identity_number: u32,
-    ) -> Name {
+    ) -> Self {
         let mut name: u64 = 0;
 
         // Arbitrary address capable - 1 bit

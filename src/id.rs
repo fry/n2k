@@ -24,13 +24,14 @@ pub enum Priority {
     Priority7 = 7,
 }
 
+#[derive(Clone, Debug)]
 pub struct Id {
     id: u32,
 }
 
 impl Id {
     //TODO: figure out if this should be split into two constructors
-    pub fn new(prio: Priority, pgn: u32, src: u8, dst: u8) -> Result<Id> {
+    pub fn new(prio: Priority, pgn: u32, src: u8, dst: u8) -> Result<Self> {
         let mut id: u32 = 0x00;
 
         id = id | (src & 0xff) as u32;

@@ -1,9 +1,11 @@
+use core::fmt::Debug;
+
 extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::can::{Bus, BusError, Frame};
-use crate::{Handler, Id, IdError, Message, GLOBAL_ADDRESS};
+use crate::hal::can::{Receiver, Transmitter};
+use crate::{Frame, Handler, Id, IdError, Message, GLOBAL_ADDRESS};
 
 const CB_TP_BAM: u8 = 0x40; // Control byte indicating TP_BAM
 
@@ -17,15 +19,6 @@ pub enum DeviceError {
     InvalidId(IdError),
 }
 
-impl From<BusError> for DeviceError {
-    fn from(error: BusError) -> Self {
-        match error {
-            BusError::CouldNotOpenBus => DeviceError::CouldNotOpenBus,
-            BusError::CouldNotSendMessage => DeviceError::CouldNotSendMessage,
-        }
-    }
-}
-
 impl From<IdError> for DeviceError {
     fn from(error: IdError) -> Self {
         DeviceError::InvalidId(error)
@@ -34,27 +27,24 @@ impl From<IdError> for DeviceError {
 
 pub type Result<T> = core::result::Result<T, DeviceError>;
 
-pub struct Device<T: Bus> {
+pub struct Device<T: Receiver + Transmitter> {
     bus: T,
     handlers: Vec<Box<dyn Handler>>,
     address: u8,
 }
 
-impl<T> Device<T>
+impl<T, E, F> Device<T>
 where
-    T: Bus,
+    T: Receiver<Error = E, Frame = F> + Transmitter<Error = E, Frame = F>,
+    F: crate::hal::can::Frame,
+    E: Debug,
 {
-    pub fn new(bus: T) -> Device<T> {
+    pub fn new(bus: T) -> Self {
         Device {
             bus: bus,
             handlers: Vec::new(),
             address: 0,
         }
-    }
-
-    pub fn open(&self) -> Result<()> {
-        self.bus.open()?;
-        Ok(())
     }
 
     pub fn send(&mut self, message: &Message) -> Result<()> {
@@ -64,20 +54,15 @@ where
 
         if length <= 8 {
             //TODO: Make sure it's not a fast packet
-            let mut d: [u8; 8] = [255; 8];
-            for i in 0..length {
-                d[i] = data[i];
-            }
-            let frame = Frame::new(id.value(), length as u8, d);
-            self.bus.send(frame)?;
+            let frame = &Frame::new(id, data);
+            self.bus.transmit(frame);
             Ok(())
         } else {
             //calculate number of packets that will be sent
             let packets = (length / 7) + 1;
-            
             // send broadcast announce message (BAM)
             let pgn = id.pgn();
-            let priority = id.priority();        
+            let priority = id.priority();
             let tp_cm_id = Id::new(priority, PGN_TP_CM, self.address, GLOBAL_ADDRESS)?;
             let d: [u8; 8] = [
                 CB_TP_BAM,                    // Control Byte: TP_BAM
@@ -90,10 +75,10 @@ where
                 ((pgn >> 16) & 0xff) as u8,   // PGN MSB
             ];
 
-            let frame = Frame::new(tp_cm_id.value(), length as u8, d);
-            self.bus.send(frame)?;
+            let frame = &Frame::new(tp_cm_id, &d);
+            self.bus.transmit(frame);
 
-            // send packets 
+            // send packets
             let tp_dt_id = Id::new(priority, PGN_TP_DT, self.address, GLOBAL_ADDRESS)?;
             let mut count = 1;
             let mut index = 0;
@@ -116,8 +101,8 @@ where
                     index += 1;
                 }
 
-                let frame = Frame::new(tp_dt_id.value(), 8, d);
-                self.bus.send(frame)?
+                let frame = &Frame::new(tp_dt_id, &d);
+                self.bus.transmit(frame);
             }
 
             Ok(())
@@ -133,29 +118,40 @@ where
 #[cfg(test)]
 mod tests {
     extern crate alloc;
-    use crate::can::{Bus, Frame, Result};
-    use crate::{Device, Id, Message, Priority, GLOBAL_ADDRESS};
     use alloc::boxed::Box;
     use alloc::vec::Vec;
 
-    struct MockCanBus {
-        pub frames: Vec<Frame>,
+    use core::fmt::Debug;
+
+    use crate::hal::can::{Receiver, Transmitter};
+    use crate::{Device, Frame, Id, Message, Priority, GLOBAL_ADDRESS};
+
+    struct MockCanBus<'a> {
+        pub frames: Vec<&'a Frame>,
     }
 
-    impl MockCanBus {
-        pub fn new() -> MockCanBus {
+    impl<'a> MockCanBus<'a> {
+        pub fn new() -> Self {
             MockCanBus { frames: Vec::new() }
         }
     }
 
-    impl Bus for MockCanBus {
-        fn open(&self) -> Result<()> {
-            Ok(())
-        }
+    impl<'a> Receiver for MockCanBus<'a> {
+        type Frame = Frame;
+        type Error = ();
 
-        fn send(&mut self, frame: Frame) -> Result<()> {
-            self.frames.push(frame);
-            Ok(())
+        fn receive(&mut self) -> nb::Result<Self::Frame, Self::Error> {
+            panic!();
+        }
+    }
+
+    impl<'a> Transmitter for MockCanBus<'a> {
+        type Frame = Frame;
+        type Error = ();
+
+        fn transmit(&mut self, frame: &Frame) -> nb::Result<Option<Self::Frame>, Self::Error> {
+            self.frames.push(&frame);
+            Ok(Option::None)
         }
     }
 
@@ -183,14 +179,13 @@ mod tests {
         for i in &test_cases {
             let bus = MockCanBus::new();
             let mut device = Device::new(bus);
-            device.open().unwrap();
 
             device.send(&i.message).unwrap();
 
             let data = i.message.data();
             if data.len() <= 8 {
                 // Single packet
-            }else{
+            } else {
                 // Multipacket
                 for b in 0..data.len() {
                     let frame = (b / 7) + 1;

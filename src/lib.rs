@@ -2,10 +2,13 @@
 
 pub const GLOBAL_ADDRESS: u8 = 0xff;
 
-pub mod can;
+use embedded_hal as hal;
 
 mod device;
 pub use device::{Device, DeviceError};
+
+mod frame;
+pub(crate) use frame::Frame;
 
 mod handler;
 pub use handler::Handler;
