@@ -13,34 +13,34 @@ const PGN_TP_CM: u32 = 0x00ec00; // 60416 - ISO Transport Protocol, Connection M
 const PGN_TP_DT: u32 = 0x00eb00; // 60160 - ISO Transport Protocol, Data Transfer
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum DeviceError {
+pub enum BusError {
     CouldNotOpenBus,
     CouldNotSendMessage,
     InvalidId(IdError),
 }
 
-impl From<IdError> for DeviceError {
+impl From<IdError> for BusError {
     fn from(error: IdError) -> Self {
-        DeviceError::InvalidId(error)
+        BusError::InvalidId(error)
     }
 }
 
-pub type Result<T> = core::result::Result<T, DeviceError>;
+pub type Result<T> = core::result::Result<T, BusError>;
 
-pub struct Device<Rx, Tx> {
+pub struct Bus<Rx, Tx> {
     rx: Rx,
     tx: Tx,
     handlers: Vec<Box<dyn Handler>>,
     address: u8,
 }
 
-impl<Rx, Tx> Device<Rx, Tx>
+impl<Rx, Tx> Bus<Rx, Tx>
 where
     Rx: Receiver,
     Tx: Transmitter,
 {
     pub fn new(rx: Rx, tx: Tx) -> Self {
-        Device {
+        Bus {
             rx: rx,
             tx: tx,
             handlers: Vec::new(),
@@ -56,7 +56,7 @@ where
         if length <= 8 {
             //TODO: Make sure it's not a fast packet
             let frame = &Tx::Frame::new_extended(id.value(), data);
-            self.tx.transmit(frame);
+            self.transmit(frame)?;
             Ok(())
         } else {
             //calculate number of packets that will be sent
@@ -77,7 +77,7 @@ where
             ];
 
             let frame = &Tx::Frame::new_extended(tp_cm_id.value(), &tp_cm_id_data);
-            self.tx.transmit(frame);
+            self.transmit(frame)?;
 
             // send packets
             let tp_dt_id = Id::new(priority, PGN_TP_DT, self.address, GLOBAL_ADDRESS)?;
@@ -103,7 +103,7 @@ where
                 }
 
                 let frame = &Tx::Frame::new_extended(tp_dt_id.value(), &tp_dt_data);
-                self.tx.transmit(frame);
+                self.transmit(frame)?;
             }
 
             Ok(())
@@ -114,6 +114,25 @@ where
         //TODO: validate input
         self.handlers.push(Box::new(handler));
     }
+
+    fn transmit(&mut self, frame: &Tx::Frame) -> Result<()> {
+        // TODO: revise this as it's not looking optimal or correct
+        let result = self.tx.transmit(frame);
+        match result {
+            Ok(None) => Ok(()),
+            // A lower priority frame was replaced with our high priority frame.
+            // Put the low priority frame back in the transmit queue.
+            Ok(pending_frame) => {
+                if let Some(f) = pending_frame {
+                    self.transmit(&f)
+                } else {
+                    Ok(())
+                }
+            }
+            Err(nb::Error::WouldBlock) => self.transmit(frame), // Need to retry
+            _ => return Err(BusError::CouldNotSendMessage),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -123,11 +142,10 @@ mod tests {
     use alloc::vec::Vec;
 
     use crate::hal::can::{Frame, Receiver, Transmitter};
-    use crate::{Device, Id, Message, Priority, GLOBAL_ADDRESS};
+    use crate::{Bus, Id, Message, Priority, GLOBAL_ADDRESS};
 
     use core::convert::TryFrom;
     use core::fmt::Debug;
-        
     /// A CAN data or remote frame.
     #[derive(Clone, Debug)]
     pub struct CanFrame {
@@ -135,11 +153,9 @@ mod tests {
         dlc: usize,
         data: [u8; 8],
     }
-    
     impl CanFrame {
         /// Creates a new data frame.
         pub fn new(id: Id, data: &[u8]) -> Self {
-    
             let mut frame = Self {
                 id,
                 dlc: data.len(),
@@ -148,25 +164,21 @@ mod tests {
             frame.data[0..data.len()].copy_from_slice(data);
             frame
         }
-    
         /// Returns the frame identifier.
         fn id(&self) -> Id {
             self.id
         }
     }
-    
-    impl crate::hal::can::Frame for CanFrame
-    {
+
+    impl crate::hal::can::Frame for CanFrame {
         /// Creates a new frame with a standard identifier.
         fn new_standard(_id: u32, _data: &[u8]) -> Self {
             panic!("NMEA 2000 only supports extended frames")
         }
-    
         /// Creates a new frame with an extended identifier.
         fn new_extended(id: u32, data: &[u8]) -> Self {
             Self::new(Id::try_from(id).unwrap(), data)
         }
-    
         /// Marks the frame as a remote frame with configurable data length code (DLC).
         ///
         /// Remote frames do not contain any data, even if the frame was created with a
@@ -174,32 +186,26 @@ mod tests {
         fn with_rtr(&mut self, _dlc: usize) -> &mut Self {
             panic!("NMEA 2000 only supports extended frames")
         }
-    
         /// Returns true if this frame is an extended frame
         fn is_extended(&self) -> bool {
             true
         }
-    
         /// Returns true if this frame is a standard frame
         fn is_standard(&self) -> bool {
             false
         }
-    
         /// Returns true if this frame is a remote frame
         fn is_remote_frame(&self) -> bool {
             false
         }
-    
         /// Returns true if this frame is a data frame
         fn is_data_frame(&self) -> bool {
             !self.is_remote_frame()
         }
-    
         /// Returns the frame identifier.
         fn id(&self) -> u32 {
             self.id.value()
         }
-    
         /// Returns the data length code (DLC) which is in the range 0..8.
         ///
         /// For data frames the DLC value always matches the lenght of the data.
@@ -207,7 +213,6 @@ mod tests {
         fn dlc(&self) -> usize {
             self.dlc
         }
-    
         /// Returns the frame data (0..8 bytes in length).
         fn data(&self) -> &[u8] {
             if self.is_data_frame() {
@@ -218,8 +223,7 @@ mod tests {
         }
     }
 
-    struct MockCanReceiver {
-    }
+    struct MockCanReceiver {}
 
     struct MockCanTransmitter {
         pub frames: Vec<CanFrame>,
@@ -251,7 +255,7 @@ mod tests {
     }
 
     #[test]
-    fn device_send() {
+    fn bus_send() {
         struct TestCase {
             message: Message,
         }
@@ -272,11 +276,11 @@ mod tests {
             },
         ];
         for i in &test_cases {
-            let rx = MockCanReceiver{};
+            let rx = MockCanReceiver {};
             let tx = MockCanTransmitter::new();
-            let mut device = Device::new(rx, tx);
+            let mut bus = Bus::new(rx, tx);
 
-            device.send(&i.message).unwrap();
+            bus.send(&i.message).unwrap();
 
             let data = i.message.data();
             if data.len() <= 8 {
@@ -286,7 +290,7 @@ mod tests {
                 for b in 0..data.len() {
                     let frame = (b / 7) + 1;
                     let index = b - ((frame - 1) * 7) + 1;
-                    assert_eq!(device.tx.frames[frame].data()[index], data[b])
+                    assert_eq!(bus.tx.frames[frame].data()[index], data[b])
                 }
             }
         }

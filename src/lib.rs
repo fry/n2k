@@ -4,8 +4,8 @@ pub const GLOBAL_ADDRESS: u8 = 0xff;
 
 use embedded_hal as hal;
 
-mod device;
-pub use device::{Device, DeviceError};
+mod bus;
+pub use bus::{Bus, BusError};
 
 mod handler;
 pub use handler::Handler;
