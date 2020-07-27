@@ -5,13 +5,13 @@ use crate::Id;
 
 /// A CAN data or remote frame.
 #[derive(Clone, Debug)]
-pub struct Frame {
+pub struct CanFrame {
     id: Id,
     dlc: usize,
     data: [u8; 8],
 }
 
-impl Frame {
+impl CanFrame {
     /// Creates a new data frame.
     pub fn new(id: Id, data: &[u8]) -> Self {
 
@@ -30,7 +30,7 @@ impl Frame {
     }
 }
 
-impl crate::hal::can::Frame for Frame
+impl crate::hal::can::Frame for CanFrame
 {
     /// Creates a new frame with a standard identifier.
     fn new_standard(id: u32, data: &[u8]) -> Self {

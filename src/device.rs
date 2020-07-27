@@ -4,8 +4,8 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::hal::can::{Receiver, Transmitter};
-use crate::{Frame, Handler, Id, IdError, Message, GLOBAL_ADDRESS};
+use crate::hal::can::{Frame, Receiver, Transmitter};
+use crate::{Handler, CanFrame, Id, IdError, Message, GLOBAL_ADDRESS};
 
 const CB_TP_BAM: u8 = 0x40; // Control byte indicating TP_BAM
 
@@ -54,7 +54,7 @@ where
 
         if length <= 8 {
             //TODO: Make sure it's not a fast packet
-            let frame = &Frame::new(id, data);
+            let frame = &CanFrame::new(id, data);
             self.bus.transmit(frame);
             Ok(())
         } else {
@@ -75,7 +75,7 @@ where
                 ((pgn >> 16) & 0xff) as u8,   // PGN MSB
             ];
 
-            let frame = &Frame::new(tp_cm_id, &d);
+            let frame = &CanFrame::new(tp_cm_id, &d);
             self.bus.transmit(frame);
 
             // send packets
@@ -101,7 +101,7 @@ where
                     index += 1;
                 }
 
-                let frame = &Frame::new(tp_dt_id, &d);
+                let frame = &CanFrame::new(tp_dt_id, &d);
                 self.bus.transmit(frame);
             }
 
@@ -121,23 +121,21 @@ mod tests {
     use alloc::boxed::Box;
     use alloc::vec::Vec;
 
-    use core::fmt::Debug;
+    use crate::hal::can::{Frame, Receiver, Transmitter};
+    use crate::{CanFrame, Device, Id, Message, Priority, GLOBAL_ADDRESS};
 
-    use crate::hal::can::{Receiver, Transmitter};
-    use crate::{Device, Frame, Id, Message, Priority, GLOBAL_ADDRESS};
-
-    struct MockCanBus<'a> {
-        pub frames: Vec<&'a Frame>,
+    struct MockCanBus {
+        pub frames: Vec<CanFrame>,
     }
 
-    impl<'a> MockCanBus<'a> {
+    impl MockCanBus {
         pub fn new() -> Self {
             MockCanBus { frames: Vec::new() }
         }
     }
 
-    impl<'a> Receiver for MockCanBus<'a> {
-        type Frame = Frame;
+    impl Receiver for MockCanBus {
+        type Frame = CanFrame;
         type Error = ();
 
         fn receive(&mut self) -> nb::Result<Self::Frame, Self::Error> {
@@ -145,12 +143,12 @@ mod tests {
         }
     }
 
-    impl<'a> Transmitter for MockCanBus<'a> {
-        type Frame = Frame;
+    impl Transmitter for MockCanBus {
+        type Frame = CanFrame;
         type Error = ();
 
-        fn transmit(&mut self, frame: &Frame) -> nb::Result<Option<Self::Frame>, Self::Error> {
-            self.frames.push(&frame);
+        fn transmit(&mut self, frame: &CanFrame) -> nb::Result<Option<Self::Frame>, Self::Error> {
+            self.frames.push(frame.clone());
             Ok(Option::None)
         }
     }

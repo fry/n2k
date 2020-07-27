@@ -8,7 +8,7 @@ mod device;
 pub use device::{Device, DeviceError};
 
 mod frame;
-pub(crate) use frame::Frame;
+pub(crate) use frame::CanFrame;
 
 mod handler;
 pub use handler::Handler;
