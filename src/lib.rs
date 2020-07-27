@@ -7,9 +7,6 @@ use embedded_hal as hal;
 mod device;
 pub use device::{Device, DeviceError};
 
-mod frame;
-pub(crate) use frame::CanFrame;
-
 mod handler;
 pub use handler::Handler;
 

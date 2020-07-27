@@ -24,7 +24,7 @@ pub enum Priority {
     Priority7 = 7,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Id {
     id: u32,
 }
