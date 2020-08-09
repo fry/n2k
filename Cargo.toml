@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 name = "n2k"
 readme = "README.md"
 repository = "https://github.com/sevenseas-io/n2k"
-version = "0.1.1-alpha.3"
+version = "0.1.0"
 
 [dependencies]
 embedded-hal = "0.2.4"
