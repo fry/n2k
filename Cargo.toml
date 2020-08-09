@@ -1,8 +1,15 @@
 [package]
-name = "n2k"
-version = "0.1.0"
 authors = ["René Herrero Gómez <rene@sevenseas.io>"]
+categories = ["no-std"]
+description = " A no_std NMEA 2000 library implemented as an embedded-hal CAN driver "
+documentation = "https://docs.rs/n2k"
 edition = "2018"
+keywords = ["nmea2000", "embedded", "can"]
+license = "MIT OR Apache-2.0"
+name = "n2k"
+readme = "README.md"
+repository = "https://github.com/sevenseas-io/n2k"
+version = "0.1.0"
 
 [dependencies]
 embedded-hal = { git = "https://github.com/reneherrero/embedded-hal.git", branch = "can" }
