@@ -4,7 +4,7 @@
 ![license](https://img.shields.io/badge/license-MIT%20or%20Apache--2-brightgreen)
 ![version](https://img.shields.io/crates/v/n2k.svg)
 
-Low footprint *no_std* NMEA 2000 experimental library implemented as an embedded-hal CAN driver.
+NMEA 2000 `#[no_std]` library implemented as an embedded-hal CAN driver.
 
 ## License
 
