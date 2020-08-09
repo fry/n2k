@@ -5,6 +5,6 @@ authors = ["René Herrero Gómez <rene@sevenseas.io>"]
 edition = "2018"
 
 [dependencies]
-embedded-hal = { git = "https://github.com/timokroeger/embedded-hal.git", branch = "can" }
-nb = { version = "1" }
+embedded-hal = { git = "https://github.com/reneherrero/embedded-hal.git", branch = "can" }
+nb = { version = "1.0.0" }
 heapless = "0.5.5"

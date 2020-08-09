@@ -27,22 +27,21 @@ impl From<IdError> for BusError {
 
 pub type Result<T> = core::result::Result<T, BusError>;
 
-pub struct Bus<Rx, Tx> {
-    rx: Rx,
-    tx: Tx,
+pub struct Bus<T> {
+    can: T,
     handlers: Vec<Box<dyn Handler>>,
     address: u8,
 }
 
-impl<Rx, Tx> Bus<Rx, Tx>
+impl<T, F, E> Bus<T>
 where
-    Rx: Receiver,
-    Tx: Transmitter,
+    F: Frame,
+    E: core::fmt::Debug,
+    T: Receiver<Frame = F, Error = E> + Transmitter<Frame = F, Error = E>,
 {
-    pub fn new(rx: Rx, tx: Tx) -> Self {
+    pub fn new(can: T) -> Self {
         Bus {
-            rx: rx,
-            tx: tx,
+            can: can,
             handlers: Vec::new(),
             address: 0,
         }
@@ -55,7 +54,7 @@ where
 
         if length <= 8 {
             //TODO: Make sure it's not a fast packet
-            let frame = &Tx::Frame::new_extended(id.value(), data);
+            let frame = &<T as Transmitter>::Frame::new_extended(id.value(), data).unwrap();
             self.transmit(frame)?;
             Ok(())
         } else {
@@ -76,7 +75,7 @@ where
                 ((pgn >> 16) & 0xff) as u8,   // PGN MSB
             ];
 
-            let frame = &Tx::Frame::new_extended(tp_cm_id.value(), &tp_cm_id_data);
+            let frame = &<T as Transmitter>::Frame::new_extended(tp_cm_id.value(), &tp_cm_id_data).unwrap();
             self.transmit(frame)?;
 
             // send packets
@@ -102,7 +101,7 @@ where
                     index += 1;
                 }
 
-                let frame = &Tx::Frame::new_extended(tp_dt_id.value(), &tp_dt_data);
+                let frame = &<T as Transmitter>::Frame::new_extended(tp_dt_id.value(), &tp_dt_data).unwrap();
                 self.transmit(frame)?;
             }
 
@@ -115,9 +114,9 @@ where
         self.handlers.push(Box::new(handler));
     }
 
-    fn transmit(&mut self, frame: &Tx::Frame) -> Result<()> {
+    fn transmit(&mut self, frame: &<T as Transmitter>::Frame) -> Result<()> {
         // TODO: revise this as it's not looking optimal or correct
-        let result = self.tx.transmit(frame);
+        let result = self.can.transmit(frame);
         match result {
             Ok(None) => Ok(()),
             // A lower priority frame was replaced with our high priority frame.
@@ -164,20 +163,16 @@ mod tests {
             frame.data[0..data.len()].copy_from_slice(data);
             frame
         }
-        /// Returns the frame identifier.
-        fn id(&self) -> Id {
-            self.id
-        }
     }
 
     impl crate::hal::can::Frame for CanFrame {
         /// Creates a new frame with a standard identifier.
-        fn new_standard(_id: u32, _data: &[u8]) -> Self {
+        fn new_standard(_id: u32, _data: &[u8]) -> Result<Self, ()> {
             panic!("NMEA 2000 only supports extended frames")
         }
         /// Creates a new frame with an extended identifier.
-        fn new_extended(id: u32, data: &[u8]) -> Self {
-            Self::new(Id::try_from(id).unwrap(), data)
+        fn new_extended(id: u32, data: &[u8]) -> Result<Self, ()> {
+            Ok(Self::new(Id::try_from(id).unwrap(), data))
         }
         /// Marks the frame as a remote frame with configurable data length code (DLC).
         ///
@@ -223,19 +218,17 @@ mod tests {
         }
     }
 
-    struct MockCanReceiver {}
-
-    struct MockCanTransmitter {
+    struct MockCan {
         pub frames: Vec<CanFrame>,
     }
 
-    impl MockCanTransmitter {
+    impl MockCan {
         pub fn new() -> Self {
-            MockCanTransmitter { frames: Vec::new() }
+            MockCan { frames: Vec::new() }
         }
     }
 
-    impl Receiver for MockCanReceiver {
+    impl Receiver for MockCan {
         type Frame = CanFrame;
         type Error = ();
 
@@ -244,7 +237,7 @@ mod tests {
         }
     }
 
-    impl Transmitter for MockCanTransmitter {
+    impl Transmitter for MockCan {
         type Frame = CanFrame;
         type Error = ();
 
@@ -276,9 +269,8 @@ mod tests {
             },
         ];
         for i in &test_cases {
-            let rx = MockCanReceiver {};
-            let tx = MockCanTransmitter::new();
-            let mut bus = Bus::new(rx, tx);
+            let can = MockCan::new();
+            let mut bus = Bus::new(can);
 
             bus.send(&i.message).unwrap();
 
@@ -290,7 +282,7 @@ mod tests {
                 for b in 0..data.len() {
                     let frame = (b / 7) + 1;
                     let index = b - ((frame - 1) * 7) + 1;
-                    assert_eq!(bus.tx.frames[frame].data()[index], data[b])
+                    assert_eq!(bus.can.frames[frame].data()[index], data[b])
                 }
             }
         }
