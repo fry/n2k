@@ -7,6 +7,10 @@
 
 NMEA 2000 `#[no_std]` library implemented as an embedded-hal CAN driver.
 
+## Minimum Supported rustc Version
+
+This crate's minimum supported rustc version is `1.36.0`.
+
 ## License
 
 Licensed under either of
