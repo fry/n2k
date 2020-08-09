@@ -2,9 +2,7 @@
 
 pub const GLOBAL_ADDRESS: u8 = 0xff;
 
-//FIXME: Replace once the CAN traits are incorporated
-//use embedded_hal as hal;
-pub mod hal;
+use embedded_hal as hal;
 
 mod bus;
 pub use bus::{Bus, BusError};
