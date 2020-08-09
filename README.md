@@ -3,7 +3,7 @@
 [![ci](https://github.com/sevenseas-io/n2k/workflows/ci/badge.svg)](https://github.com/sevenseas-io/n2k/actions?query=workflow%3Aci)
 [![license](https://img.shields.io/badge/license-MIT%20or%20Apache--2-brightgreen)](https://github.com/sevenseas-io/n2k#license)
 [![version](https://img.shields.io/crates/v/n2k.svg)](https://crates.io/crates/n2k)
-[![docs.rs](https://docs.rs/spin/badge.svg)](https://docs.rs/n2k/)
+[![docs](https://docs.rs/n2k/badge.svg)](https://docs.rs/n2k/)
 
 NMEA 2000 `#[no_std]` library implemented as an embedded-hal CAN driver.
 
