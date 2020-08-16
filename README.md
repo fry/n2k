@@ -5,7 +5,7 @@
 [![version](https://img.shields.io/crates/v/n2k.svg)](https://crates.io/crates/n2k)
 [![docs](https://docs.rs/n2k/badge.svg)](https://docs.rs/n2k/)
 
-NMEA 2000 `#[no_std]` library implemented as an embedded-hal CAN driver.
+NMEA 2000 `no_std` library implemented as an embedded-hal CAN driver.
 
 ## Minimum Supported Rust Version (MSRV)
 
