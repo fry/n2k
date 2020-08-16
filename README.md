@@ -9,7 +9,7 @@ NMEA 2000 `no_std` library implemented as an embedded-hal CAN driver.
 
 ## Minimum Supported Rust Version (MSRV)
 
-This crate is guaranteed to compile on stable Rust 1.36 and up.
+This crate is guaranteed to compile on stable Rust 1.40 and up.
 
 ## License
 
