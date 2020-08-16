@@ -41,7 +41,7 @@ where
 {
     pub fn new(can: T) -> Self {
         Bus {
-            can: can,
+            can,
             handlers: Vec::new(),
             address: 0,
         }
@@ -75,7 +75,8 @@ where
                 ((pgn >> 16) & 0xff) as u8,   // PGN MSB
             ];
 
-            let frame = &<T as Transmitter>::Frame::new_extended(tp_cm_id.value(), &tp_cm_id_data).unwrap();
+            let frame =
+                &<T as Transmitter>::Frame::new_extended(tp_cm_id.value(), &tp_cm_id_data).unwrap();
             self.transmit(frame)?;
 
             // send packets
@@ -101,7 +102,8 @@ where
                     index += 1;
                 }
 
-                let frame = &<T as Transmitter>::Frame::new_extended(tp_dt_id.value(), &tp_dt_data).unwrap();
+                let frame = &<T as Transmitter>::Frame::new_extended(tp_dt_id.value(), &tp_dt_data)
+                    .unwrap();
                 self.transmit(frame)?;
             }
 
@@ -129,7 +131,7 @@ where
                 }
             }
             Err(nb::Error::WouldBlock) => self.transmit(frame), // Need to retry
-            _ => return Err(BusError::CouldNotSendMessage),
+            _ => Err(BusError::CouldNotSendMessage),
         }
     }
 }

@@ -16,15 +16,12 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn new(id: Id, data: Box<[u8]>) -> Result<Self>{
+    pub fn new(id: Id, data: Box<[u8]>) -> Result<Self> {
         if data.len() > 255 {
-            return Err(MessageError::Max255Bytes)
+            return Err(MessageError::Max255Bytes);
         }
-        
-        Ok(Message{
-            id: id,
-            data: data
-        })
+
+        Ok(Message { id, data })
     }
 
     pub fn id(&self) -> Id {

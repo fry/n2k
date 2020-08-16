@@ -23,14 +23,14 @@ impl<'a> Product<'a> {
         //TODO: validate parameters
 
         Product {
-            n2k: n2k,
-            code: code,
-            model: model,
-            software: software,
-            version: version,
-            serial: serial,
-            certification: certification,
-            load: load,
+            n2k,
+            code,
+            model,
+            software,
+            version,
+            serial,
+            certification,
+            load,
         }
     }
 
