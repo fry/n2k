@@ -3,6 +3,7 @@ pub struct Name {
 }
 
 impl Name {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         arbitrary_address_capable: bool,
         industry_group: u8,

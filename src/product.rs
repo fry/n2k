@@ -10,6 +10,7 @@ pub struct Product<'a> {
 }
 
 impl<'a> Product<'a> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         n2k: u8,
         code: u8,

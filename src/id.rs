@@ -34,12 +34,12 @@ impl Id {
     pub fn new(prio: Priority, pgn: u32, src: u8, dst: u8) -> Result<Self> {
         let mut id: u32 = 0x00;
 
-        id = id | (src & 0xff) as u32;
+        id |= src as u32 & 0xff;
 
         let pf = (pgn >> 8) & 0xff;
         if pf <= 239 {
             // PDU 1
-            id |= ((dst & 0xff) as u32) << 8;
+            id |= (dst as u32 & 0xff) << 8;
             id |= pgn << 8;
         } else {
             if dst != GLOBAL_ADDRESS {
@@ -84,7 +84,7 @@ impl Id {
     }
 
     pub fn source(&self) -> u8 {
-        (self.id >> 0) as u8
+        self.id as u8
     }
 
     pub fn destination(&self) -> u8 {
@@ -159,7 +159,9 @@ mod tests {
             },
         ];
         for i in &test_cases {
-            let id: u32 = Id::new(i.prio, i.pgn, i.src, i.dst).expect("Invalid parameter").value();
+            let id: u32 = Id::new(i.prio, i.pgn, i.src, i.dst)
+                .expect("Invalid parameter")
+                .value();
             assert_eq!(id, i.id)
         }
     }
