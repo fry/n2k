@@ -15,4 +15,4 @@ exclude = ["docs"]
 [dependencies]
 embedded-hal = { git = "https://github.com/reneherrero/embedded-hal.git", branch = "can" }
 nb = { version = "1.0.0" }
-heapless = "0.5.5"
+heapless = "0.6.0"
