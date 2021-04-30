@@ -2,7 +2,7 @@
 
 pub const GLOBAL_ADDRESS: u8 = 0xff;
 
-use embedded_hal as hal;
+use embedded_hal_can as hal_can;
 
 mod bus;
 pub use bus::{Bus, BusError};
@@ -21,3 +21,6 @@ pub use name::Name;
 
 mod product;
 pub use product::Product;
+
+mod frame;
+pub use frame::CanFrame;

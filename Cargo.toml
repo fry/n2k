@@ -13,6 +13,6 @@ version = "0.1.1-alpha.1"
 exclude = ["docs"]
 
 [dependencies]
-embedded-hal = { git = "https://github.com/reneherrero/embedded-hal.git", branch = "can" }
+embedded-hal-can = { git = "https://github.com/zklapow/embedded-hal-can" }
 nb = { version = "1.0.0" }
 heapless = "0.6.0"

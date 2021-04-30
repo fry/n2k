@@ -104,6 +104,20 @@ impl Id {
     }
 }
 
+impl crate::hal_can::Id for Id {
+    type BaseId = ();
+
+    type ExtendedId = u32;
+
+    fn base_id(&self) -> Option<Self::BaseId> {
+        None
+    }
+
+    fn extended_id(&self) -> Option<Self::ExtendedId> {
+        Some(self.value())
+    }
+}
+
 impl TryFrom<u32> for Id {
     type Error = IdError;
 
