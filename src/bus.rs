@@ -1,12 +1,8 @@
 use core::fmt::Debug;
 
-extern crate alloc;
-use alloc::boxed::Box;
-use alloc::vec::Vec;
-
 use crate::hal_can::{Receiver, Transmitter};
 use crate::CanFrame;
-use crate::{Handler, Id, IdError, Message, GLOBAL_ADDRESS};
+use crate::{Id, IdError, Message, GLOBAL_ADDRESS};
 
 const CB_TP_BAM: u8 = 0x40; // Control byte indicating TP_BAM
 
@@ -30,7 +26,6 @@ pub type Result<T> = core::result::Result<T, BusError>;
 
 pub struct Bus<T> {
     can: T,
-    handlers: Vec<Box<dyn Handler>>,
     address: u8,
 }
 
@@ -40,11 +35,7 @@ where
     T: Receiver<Frame = CanFrame, Error = E> + Transmitter<Frame = CanFrame, Error = E>,
 {
     pub fn new(can: T) -> Self {
-        Bus {
-            can,
-            handlers: Vec::new(),
-            address: 0,
-        }
+        Bus { can, address: 0 }
     }
 
     pub fn send(&mut self, message: &Message) -> Result<()> {
@@ -107,11 +98,6 @@ where
 
             Ok(())
         }
-    }
-
-    pub fn register<H: Handler + 'static>(&mut self, handler: H) {
-        //TODO: validate input
-        self.handlers.push(Box::new(handler));
     }
 
     fn transmit(&mut self, frame: &CanFrame) -> Result<()> {

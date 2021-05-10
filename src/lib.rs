@@ -7,9 +7,6 @@ use embedded_hal_can as hal_can;
 mod bus;
 pub use bus::{Bus, BusError};
 
-mod handler;
-pub use handler::Handler;
-
 mod id;
 pub use id::{Id, IdError, Priority};
 

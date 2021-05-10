@@ -1,6 +1,3 @@
-extern crate alloc;
-use alloc::boxed::Box;
-
 use crate::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -10,13 +7,13 @@ pub enum MessageError {
 
 pub type Result<T> = core::result::Result<T, MessageError>;
 
-pub struct Message {
+pub struct Message<'a> {
     id: Id,
-    data: Box<[u8]>,
+    data: &'a [u8],
 }
 
-impl Message {
-    pub fn new(id: Id, data: Box<[u8]>) -> Result<Self> {
+impl<'a> Message<'a> {
+    pub fn new(id: Id, data: &'a [u8]) -> Result<Self> {
         if data.len() > 255 {
             return Err(MessageError::Max255Bytes);
         }
