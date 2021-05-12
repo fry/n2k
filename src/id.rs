@@ -24,10 +24,8 @@ pub enum Priority {
     Priority7 = 7,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Id {
-    id: u32,
-}
+#[derive(Clone, Copy)]
+pub struct Id(u32);
 
 impl Id {
     //TODO: figure out if this should be split into two constructors
@@ -50,11 +48,11 @@ impl Id {
         }
         id |= (prio as u32) << 26;
 
-        Ok(Id { id })
+        Ok(Id(id))
     }
 
     pub fn priority(&self) -> Priority {
-        let prio: u8 = ((self.id >> 26) & 0x7) as u8;
+        let prio: u8 = ((self.0 >> 26) & 0x7) as u8;
         match prio {
             0 => Priority::Priority0,
             1 => Priority::Priority1,
@@ -69,29 +67,29 @@ impl Id {
     }
 
     pub fn pgn(&self) -> u32 {
-        let pf: u8 = (self.id >> 16) as u8;
-        let dp: u8 = ((self.id >> 24) & 1) as u8;
+        let pf: u8 = (self.0 >> 16) as u8;
+        let dp: u8 = ((self.0 >> 24) & 1) as u8;
         if pf <= 239 {
             // PDU1 format, the PS contains the destination address
             let pgn = ((dp as u32) << 16) + ((pf as u32) << 8);
             pgn as u32
         } else {
             // PDU2 format, the PGN is extended
-            let ps: u8 = (self.id >> 8) as u8;
+            let ps: u8 = (self.0 >> 8) as u8;
             let pgn = ((dp as u32) << 16) + ((pf as u32) << 8) + (ps as u32);
             pgn as u32
         }
     }
 
     pub fn source(&self) -> u8 {
-        self.id as u8
+        self.0 as u8
     }
 
     pub fn destination(&self) -> u8 {
-        let pf: u8 = (self.id >> 16) as u8;
+        let pf: u8 = (self.0 >> 16) as u8;
         if pf <= 239 {
             // PDU1 format, the PS contains the destination address
-            let ps: u8 = (self.id >> 8) as u8;
+            let ps: u8 = (self.0 >> 8) as u8;
             ps
         } else {
             // PDU2 format, the destination is implied global and the PGN is extended
@@ -100,7 +98,18 @@ impl Id {
     }
 
     pub fn value(&self) -> u32 {
-        self.id
+        self.0
+    }
+}
+
+impl core::fmt::Debug for Id {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Id")
+            .field("priority", &self.priority())
+            .field("pgn", &self.pgn())
+            .field("source", &self.source())
+            .field("destination", &self.destination())
+            .finish()
     }
 }
 
@@ -124,7 +133,7 @@ impl TryFrom<u32> for Id {
     fn try_from(val: u32) -> Result<Id> {
         validate_id(&val)?;
 
-        Ok(Id { id: val })
+        Ok(Id(val))
     }
 }
 
@@ -176,7 +185,7 @@ mod tests {
             let id: u32 = Id::new(i.prio, i.pgn, i.src, i.dst)
                 .expect("Invalid parameter")
                 .value();
-            assert_eq!(id, i.id)
+            assert_eq!(id, i.0)
         }
     }
 
@@ -201,7 +210,7 @@ mod tests {
             },
         ];
         for i in &test_cases {
-            let id = Id::try_from(i.id).expect("Invalid CanID");
+            let id = Id::try_from(i.0).expect("Invalid CanID");
             assert_eq!(id.priority(), i.prio)
         }
     }
@@ -227,7 +236,7 @@ mod tests {
             },
         ];
         for i in &test_cases {
-            let id = Id::try_from(i.id).expect("Invalid CanID");
+            let id = Id::try_from(i.0).expect("Invalid CanID");
             assert_eq!(id.pgn(), i.pgn)
         }
     }
@@ -253,7 +262,7 @@ mod tests {
             },
         ];
         for i in &test_cases {
-            let id = Id::try_from(i.id).expect("Invalid CanID");
+            let id = Id::try_from(i.0).expect("Invalid CanID");
             assert_eq!(id.source(), i.src)
         }
     }
@@ -279,7 +288,7 @@ mod tests {
             },
         ];
         for i in &test_cases {
-            let id = Id::try_from(i.id).expect("Invalid CanID");
+            let id = Id::try_from(i.0).expect("Invalid CanID");
             assert_eq!(id.destination(), i.dst)
         }
     }

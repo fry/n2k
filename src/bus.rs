@@ -1,6 +1,6 @@
-use core::fmt::Debug;
+use core::{convert::TryFrom, fmt::Debug};
 
-use crate::hal_can::{Receiver, Transmitter};
+use crate::hal_can::{self, Receiver, Transmitter};
 use crate::CanFrame;
 use crate::{Id, IdError, Message, GLOBAL_ADDRESS};
 
@@ -29,15 +29,32 @@ pub struct Bus<T> {
     address: u8,
 }
 
-impl<T, E> Bus<T>
-where
-    E: core::fmt::Debug,
-    T: Receiver<Frame = CanFrame, Error = E> + Transmitter<Frame = CanFrame, Error = E>,
-{
+impl<T> Bus<T> {
     pub fn new(can: T) -> Self {
         Bus { can, address: 0 }
     }
+}
 
+impl<T, E, I, F> Bus<T>
+where
+    E: core::fmt::Debug,
+    I: hal_can::Id<ExtendedId = u32>,
+    F: hal_can::Frame<Id = I>,
+    T: Receiver<Frame = F, Error = E>,
+{
+    pub fn receive(&mut self) -> nb::Result<(), E> {
+        let frame = self.can.receive()?;
+        let id = Id::try_from(frame.id().extended_id().unwrap()).unwrap();
+
+        todo!()
+    }
+}
+
+impl<T, E> Bus<T>
+where
+    E: core::fmt::Debug,
+    T: Transmitter<Frame = CanFrame, Error = E>,
+{
     pub fn send(&mut self, message: &Message) -> Result<()> {
         let id = message.id();
         let data = message.data();
